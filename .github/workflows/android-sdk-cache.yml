@@ -6,6 +6,9 @@ on:
       - tooling/android-sdk-cache
     paths:
       - '.github/workflows/android-sdk-cache.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/android-sdk-cache.yml'
   workflow_dispatch:
 
 permissions:
