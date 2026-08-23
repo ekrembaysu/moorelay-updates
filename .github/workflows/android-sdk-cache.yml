@@ -1,0 +1,54 @@
+name: Android SDK 35 Cache
+
+on:
+  push:
+    branches:
+      - tooling/android-sdk-cache
+    paths:
+      - '.github/workflows/android-sdk-cache.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-sdk:
+    name: Package Android SDK 35
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect and package preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME:-}"
+          test -n "${ANDROID_HOME:-}"
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+
+          BUILD_TOOLS=""
+          for version in 35.0.1 35.0.0; do
+            if [ -d "$ANDROID_HOME/build-tools/$version" ]; then
+              BUILD_TOOLS="$version"
+              break
+            fi
+          done
+          test -n "$BUILD_TOOLS"
+          echo "Using build-tools $BUILD_TOOLS"
+
+          mkdir -p "$RUNNER_TEMP/android-sdk-35/platforms/android-35"
+          mkdir -p "$RUNNER_TEMP/android-sdk-35/build-tools"
+          cp "$ANDROID_HOME/platforms/android-35/android.jar" "$RUNNER_TEMP/android-sdk-35/platforms/android-35/android.jar"
+          cp -a "$ANDROID_HOME/build-tools/$BUILD_TOOLS" "$RUNNER_TEMP/android-sdk-35/build-tools/$BUILD_TOOLS"
+
+          cd "$RUNNER_TEMP/android-sdk-35"
+          find . -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          du -sh .
+          ls -la "build-tools/$BUILD_TOOLS" | head -40
+
+      - name: Upload Android SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-35-linux
+          path: ${{ runner.temp }}/android-sdk-35
+          if-no-files-found: error
+          retention-days: 1
